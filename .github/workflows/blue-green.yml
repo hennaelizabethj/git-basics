@@ -51,25 +51,22 @@ jobs:
           host: ${{ secrets.GREEN_EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: ECR_REPO,IMAGE_TAG,AWS_REGION
           script: |
             set -e
 
-            echo "Deploying image: $ECR_REPO:$IMAGE_TAG"
+            IMAGE="${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }}"
+            AWS_REGION="${{ env.AWS_REGION }}"
 
-            echo "Login to ECR from EC2"
+            echo "Deploying image: $IMAGE"
+
             aws ecr get-login-password --region $AWS_REGION | \
               docker login --username AWS --password-stdin 897034437711.dkr.ecr.ap-south-1.amazonaws.com
 
-            echo "Stopping old container"
             docker stop app || true
             docker rm app || true
 
-            echo "Pulling new image"
-            docker pull $ECR_REPO:$IMAGE_TAG
-
-            echo "Starting new container"
-            docker run -d -p 80:80 --name app $ECR_REPO:$IMAGE_TAG
+            docker pull $IMAGE
+            docker run -d -p 80:80 --name app $IMAGE
 
             echo "GREEN deployment completed successfully"
 
